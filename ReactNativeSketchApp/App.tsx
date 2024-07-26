@@ -11,7 +11,7 @@ import {
 import Canvas from "react-native-canvas";
 
 const ITEM_WIDTH = Dimensions.get("window").width - 50;
-const SERVER_URL = "http://10.24.93.170:8080";
+const SERVER_URL = "http://172.20.23.122:8080";
 
 interface AppState {
   previousX: number | string;
@@ -20,6 +20,8 @@ interface AppState {
   currentY: number | string;
   drawFlag: boolean;
   similarity: string;
+  blueButtonColor: string;
+  redButtonColor: string;
 }
 
 export default class App extends Component<{}, AppState> {
@@ -35,6 +37,8 @@ export default class App extends Component<{}, AppState> {
       currentY: "",
       drawFlag: false,
       similarity: "",
+      blueButtonColor: "blue",
+      redButtonColor: "red",
     };
     this.canvas = createRef();
     this.onTouch = this.onTouch.bind(this);
@@ -42,11 +46,16 @@ export default class App extends Component<{}, AppState> {
     this.onTouchEnd = this.onTouchEnd.bind(this);
     this.clear = this.clear.bind(this);
     this.saveSketch = this.saveSketch.bind(this);
+    this.toggleBlueButtonColor = this.toggleBlueButtonColor.bind(this);
+    this.toggleRedButtonColor = this.toggleRedButtonColor.bind(this);
   }
 
   componentDidMount() {
     this.updateCanvas();
-    this.saveInterval = setInterval(this.saveSketch, 2000); // 2秒ごとに自動保存
+    // this.saveInterval = setInterval(() => {
+    //   this.saveSketch();
+    //   console.log("Logging every 2 seconds");
+    // }, 2000); // 2秒ごとに自動保存
   }
 
   componentWillUnmount() {
@@ -68,13 +77,34 @@ export default class App extends Component<{}, AppState> {
     }
   }
 
+  toggleBlueButtonColor() {
+    this.setState({
+      blueButtonColor:
+        this.state.blueButtonColor === "blue" ? "lightblue" : "blue",
+    });
+  }
+
+  toggleRedButtonColor() {
+    this.setState({
+      redButtonColor: this.state.redButtonColor === "red" ? "pink" : "red",
+    });
+  }
   async saveSketch() {
     try {
       const response = await fetch(`${SERVER_URL}/save`, {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          blueButtonColor: this.state.blueButtonColor,
+          redButtonColor: this.state.redButtonColor,
+        }),
       });
+      console.log(response);
+
       const data = await response.json(); // Parse response as JSON
-      console.log(data.similarity); // Log the similarity value
+      console.log(data.similarity * data.similarity * 1000); // Log the similarity value
       this.setState({
         similarity: (data.similarity * data.similarity * 1000).toFixed(2) + "%",
       });
@@ -132,14 +162,18 @@ export default class App extends Component<{}, AppState> {
 
   async sendDrawingData(data: any) {
     try {
-      // console.log("Sending drawing data:", data); // デバッグ用にログ出力
+      const payload = {
+        ...data,
+        blueButtonColor: this.state.blueButtonColor,
+        redButtonColor: this.state.redButtonColor,
+      };
 
       const response = await fetch(`${SERVER_URL}/draw`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
       const text = await response.text();
       // console.log(text);
@@ -147,6 +181,7 @@ export default class App extends Component<{}, AppState> {
       console.error("Error sending drawing data:", error);
     }
   }
+
   async clearServerData() {
     try {
       const response = await fetch(`${SERVER_URL}/clear`, {
@@ -158,6 +193,27 @@ export default class App extends Component<{}, AppState> {
       console.error("Error clearing server data:", error);
     }
   }
+
+  // async clearServerData() {
+  //   try {
+  //     const payload = {
+  //       blueButtonColor: this.state.blueButtonColor,
+  //       redButtonColor: this.state.redButtonColor,
+  //     };
+
+  //     const response = await fetch(`${SERVER_URL}/clear`, {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //       body: JSON.stringify(payload),
+  //     });
+  //     const text = await response.text();
+  //     // console.log(text);
+  //   } catch (error) {
+  //     console.error("Error clearing server data:", error);
+  //   }
+  // }
 
   onTouchEnd() {
     this.setState({
@@ -236,9 +292,39 @@ export default class App extends Component<{}, AppState> {
                 類似度：{this.state.similarity ? this.state.similarity : "0%"}
               </Text>
             </View>
+            <TouchableOpacity style={styles.clear} onPress={this.saveSketch}>
+              <Text>送信</Text>
+            </TouchableOpacity>
             <TouchableOpacity style={styles.clear} onPress={this.clear}>
               <Text>クリア</Text>
             </TouchableOpacity>
+            <View
+              style={{
+                flexDirection: "row",
+                marginTop: 10,
+                width: 500,
+                justifyContent: "space-between",
+              }}
+            >
+              <TouchableOpacity
+                style={[
+                  styles.button,
+                  { backgroundColor: this.state.blueButtonColor },
+                ]}
+                onPress={this.toggleBlueButtonColor}
+              >
+                <Text style={styles.buttonText}>青ボタン</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.button,
+                  { backgroundColor: this.state.redButtonColor },
+                ]}
+                onPress={this.toggleRedButtonColor}
+              >
+                <Text style={styles.buttonText}>赤ボタン</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </View>
@@ -255,5 +341,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginTop: 10,
+  },
+  button: {
+    height: 40,
+    width: 100,
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 10,
+  },
+  buttonText: {
+    color: "white",
+    fontSize: 16,
   },
 });
