@@ -11,7 +11,7 @@ import {
 import Canvas from "react-native-canvas";
 
 const ITEM_WIDTH = Dimensions.get("window").width - 50;
-const SERVER_URL = "http://172.20.23.122:8080";
+const SERVER_URL = "http://172.20.21.246:8080";
 
 interface AppState {
   previousX: number | string;
