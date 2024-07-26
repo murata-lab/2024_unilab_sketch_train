@@ -113,8 +113,15 @@ def save_sketch():
             image_path = 'sketch.png'
             image_blue.save(image_path)  # Default to saving the blue image if no color is specified
 
+        # Check if the image was saved and loaded correctly
         generated_img = cv2.imread(image_path)
+        if generated_img is None:
+            raise ValueError(f"Failed to load image at path: {image_path}")
+
         sample_img = cv2.imread('image3.png')
+        if sample_img is None:
+            raise ValueError("Failed to load sample image at path: image3.png")
+
         hog_generated = extract_hog(generated_img)
         hog_sample = extract_hog(sample_img)
         similarity = calculate_similarity(hog_generated, hog_sample)
