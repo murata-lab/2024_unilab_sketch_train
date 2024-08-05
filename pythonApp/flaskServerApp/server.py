@@ -98,12 +98,12 @@ def save_sketch():
         draw_red = ImageDraw.Draw(image_red)
 
         for data in drawing_data_list:
-            if data.get('blueButtonColor') == 'lightblue':
+            if data.get('blueButtonColor') == 'red':
                 draw_blue.line([(data['previousX'], data['previousY']), (data['currentX'], data['currentY'])], fill='black', width=2)
             elif data.get('blueButtonColor') == 'blue':
                 draw_red.line([(data['previousX'], data['previousY']), (data['currentX'], data['currentY'])], fill='black', width=2)
 
-        if data.get('blueButtonColor') == 'lightblue':
+        if data.get('blueButtonColor') == 'red':
             image_path = 'sketch_blue.png'
             image_blue.save(image_path)
         elif data.get('blueButtonColor') == 'blue':
@@ -126,7 +126,7 @@ def save_sketch():
         hog_sample = extract_hog(sample_img)
         similarity = calculate_similarity(hog_generated, hog_sample)
         # print(f"Similarity: {similarity}")
-        if data.get('blueButtonColor') == 'lightblue':
+        if data.get('blueButtonColor') == 'red':
             print(f"ブルーチームの類似度: {similarity}")
             blue_similarity = similarity
         elif data.get('blueButtonColor') == 'blue':
@@ -146,6 +146,8 @@ def save_sketch():
         return jsonify({
             "message": "Sketch saved successfully",
             "similarity": similarity,
+            "blue_similarity": blue_similarity,
+            "red_similarity": red_similarity,
             "blueButtonColor": blue_button_color,
             "redButtonColor": red_button_color
         }), 200
