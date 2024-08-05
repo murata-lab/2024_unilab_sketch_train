@@ -15,6 +15,7 @@ log.setLevel(logging.ERROR)
 
 SAMPLE_IMAGE_PATH_1 = 'sinkansenn.png'
 SAMPLE_IMAGE_PATH_2 = 'sinkansenn2.png'
+SAMPLE_IMAGE_PATH_2 = 'sinkansenn3.png'
 SAMPLE_IMAGE_PATH = SAMPLE_IMAGE_PATH_2
 
 @app.route('/draw', methods=['POST'])

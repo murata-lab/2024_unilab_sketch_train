@@ -16,7 +16,8 @@ const SERVER_IP = "10.24.69.5";
 const SERVER_URL = `http://${SERVER_IP}:8080`;
 const SAMPLE_IMAGE_PATH_1 = "./assets/sinkansenn.png";
 const SAMPLE_IMAGE_PATH_2 = "./assets/sinkansenn2.png";
-const SAMPLE_IMAGE_PATH = SAMPLE_IMAGE_PATH_2;
+const SAMPLE_IMAGE_PATH_3 = "./assets/sinkansenn3.png";
+const SAMPLE_IMAGE_PATH = SAMPLE_IMAGE_PATH_1;
 
 interface AppState {
   previousX: number | string;
@@ -288,9 +289,9 @@ export default class App extends Component<{}, AppState> {
             <Animated.Image
               source={require(SAMPLE_IMAGE_PATH)}
               style={{
-                width: 400,
+                width: 500,
                 height: 500,
-                marginLeft: ITEM_WIDTH / 10,
+                marginLeft: ITEM_WIDTH / 15,
                 transform: [{ translateX: shake }],
               }}
             />
