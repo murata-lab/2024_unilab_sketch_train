@@ -12,7 +12,11 @@ import {
 import Canvas from "react-native-canvas";
 
 const ITEM_WIDTH = Dimensions.get("window").width - 50;
-const SERVER_URL = "http://192.168.11.7:8080";
+const SERVER_IP = "10.24.69.5";
+const SERVER_URL = `http://${SERVER_IP}:8080`;
+const SAMPLE_IMAGE_PATH_1 = "./assets/sinkansenn.png";
+const SAMPLE_IMAGE_PATH_2 = "./assets/sinkansenn2.png";
+const SAMPLE_IMAGE_PATH = SAMPLE_IMAGE_PATH_2;
 
 interface AppState {
   previousX: number | string;
@@ -25,6 +29,7 @@ interface AppState {
   redButtonColor: string;
   blue_similarity: string;
   red_similarity: string;
+  isLoading: boolean;
 }
 
 export default class App extends Component<{}, AppState> {
@@ -45,6 +50,7 @@ export default class App extends Component<{}, AppState> {
       redButtonColor: "red",
       blue_similarity: "",
       red_similarity: "",
+      isLoading: false,
     };
     this.canvas = createRef();
     this.onTouch = this.onTouch.bind(this);
@@ -100,6 +106,8 @@ export default class App extends Component<{}, AppState> {
 
   async saveSketch() {
     try {
+      this.setState({ isLoading: true }); // 追加
+
       const response = await fetch(`${SERVER_URL}/save`, {
         method: "POST",
         headers: {
@@ -121,6 +129,8 @@ export default class App extends Component<{}, AppState> {
       });
     } catch (error) {
       console.error("Error saving sketch:", error);
+    } finally {
+      this.setState({ isLoading: false }); // 追加
     }
   }
 
@@ -204,8 +214,17 @@ export default class App extends Component<{}, AppState> {
           buttonColor: this.state.blueButtonColor,
         }),
       });
-      const text = await response.text();
-      // console.log(text);
+      const data = await response.json();
+      if (this.state.blueButtonColor === "red") {
+        this.setState({
+          red_similarity: "0.0pt",
+        });
+      } else {
+        this.setState({
+          blue_similarity: "0.0pt",
+        });
+      }
+      console.log(data);
     } catch (error) {
       console.error("Error clearing server data:", error);
     }
@@ -267,7 +286,7 @@ export default class App extends Component<{}, AppState> {
         <View style={{ flexDirection: "row", alignItems: "center" }}>
           <View style={{ width: ITEM_WIDTH / 2, height: ITEM_WIDTH / 2 }}>
             <Animated.Image
-              source={require("./assets/sinkansenn.png")}
+              source={require(SAMPLE_IMAGE_PATH)}
               style={{
                 width: 400,
                 height: 500,
@@ -363,8 +382,10 @@ export default class App extends Component<{}, AppState> {
                   borderRadius: 50,
                   borderColor: "orange",
                   borderWidth: 5,
+                  opacity: this.state.isLoading ? 0.5 : 1,
                 }}
                 onPress={this.saveSketch}
+                disabled={this.state.isLoading}
               >
                 <Text
                   style={{
