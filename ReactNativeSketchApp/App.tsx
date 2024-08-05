@@ -7,11 +7,12 @@ import {
   GestureResponderEvent,
   Dimensions,
   Image,
+  Animated, // 追加
 } from "react-native";
 import Canvas from "react-native-canvas";
 
 const ITEM_WIDTH = Dimensions.get("window").width - 50;
-const SERVER_URL = "http://172.20.21.246:8080";
+const SERVER_URL = "http://192.168.11.7:8080";
 
 interface AppState {
   previousX: number | string;
@@ -22,11 +23,14 @@ interface AppState {
   similarity: string;
   blueButtonColor: string;
   redButtonColor: string;
+  blue_similarity: string;
+  red_similarity: string;
 }
 
 export default class App extends Component<{}, AppState> {
   private canvas: React.RefObject<Canvas>;
   private saveInterval: NodeJS.Timeout | null = null;
+  private shakeAnimation: Animated.Value; // 追加
 
   constructor(props: {}) {
     super(props);
@@ -39,6 +43,8 @@ export default class App extends Component<{}, AppState> {
       similarity: "",
       blueButtonColor: "blue",
       redButtonColor: "red",
+      blue_similarity: "",
+      red_similarity: "",
     };
     this.canvas = createRef();
     this.onTouch = this.onTouch.bind(this);
@@ -47,15 +53,24 @@ export default class App extends Component<{}, AppState> {
     this.clear = this.clear.bind(this);
     this.saveSketch = this.saveSketch.bind(this);
     this.toggleBlueButtonColor = this.toggleBlueButtonColor.bind(this);
-    this.toggleRedButtonColor = this.toggleRedButtonColor.bind(this);
+    this.shakeAnimation = new Animated.Value(0); // 追加
   }
 
   componentDidMount() {
     this.updateCanvas();
+    this.startShake(); // 追加
     // this.saveInterval = setInterval(() => {
     //   this.saveSketch();
     //   console.log("Logging every 2 seconds");
     // }, 2000); // 2秒ごとに自動保存
+  }
+  componentDidUpdate(prevProps: {}, prevState: AppState) {
+    if (
+      prevState.blue_similarity !== this.state.blue_similarity ||
+      prevState.red_similarity !== this.state.red_similarity
+    ) {
+      this.startShake();
+    }
   }
 
   componentWillUnmount() {
@@ -79,16 +94,10 @@ export default class App extends Component<{}, AppState> {
 
   toggleBlueButtonColor() {
     this.setState({
-      blueButtonColor:
-        this.state.blueButtonColor === "blue" ? "lightblue" : "blue",
+      blueButtonColor: this.state.blueButtonColor === "blue" ? "red" : "blue",
     });
   }
 
-  toggleRedButtonColor() {
-    this.setState({
-      redButtonColor: this.state.redButtonColor === "red" ? "pink" : "red",
-    });
-  }
   async saveSketch() {
     try {
       const response = await fetch(`${SERVER_URL}/save`, {
@@ -96,20 +105,22 @@ export default class App extends Component<{}, AppState> {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          blueButtonColor: this.state.blueButtonColor,
-          redButtonColor: this.state.redButtonColor,
-        }),
+        body: JSON.stringify({}),
       });
-      console.log(response);
 
       const data = await response.json(); // Parse response as JSON
-      console.log(data.similarity * data.similarity * 1000); // Log the similarity value
+      console.log(data);
+
       this.setState({
-        similarity: (data.similarity * data.similarity * 1000).toFixed(2) + "%",
+        blue_similarity: data.similarity_blue.toFixed(1) + "pt",
+        red_similarity: data.similarity_red.toFixed(1) + "pt",
+      });
+      this.setState({
+        similarity:
+          (data.similarity_blue - data.similarity_red).toFixed(1) + "pt",
       });
     } catch (error) {
-      // console.error("Error saving sketch:", error);
+      console.error("Error saving sketch:", error);
     }
   }
 
@@ -162,10 +173,10 @@ export default class App extends Component<{}, AppState> {
 
   async sendDrawingData(data: any) {
     try {
+      // console.log(this.state.blueButtonColor);
       const payload = {
         ...data,
         blueButtonColor: this.state.blueButtonColor,
-        redButtonColor: this.state.redButtonColor,
       };
 
       const response = await fetch(`${SERVER_URL}/draw`, {
@@ -186,6 +197,12 @@ export default class App extends Component<{}, AppState> {
     try {
       const response = await fetch(`${SERVER_URL}/clear`, {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          buttonColor: this.state.blueButtonColor,
+        }),
       });
       const text = await response.text();
       // console.log(text);
@@ -193,27 +210,6 @@ export default class App extends Component<{}, AppState> {
       console.error("Error clearing server data:", error);
     }
   }
-
-  // async clearServerData() {
-  //   try {
-  //     const payload = {
-  //       blueButtonColor: this.state.blueButtonColor,
-  //       redButtonColor: this.state.redButtonColor,
-  //     };
-
-  //     const response = await fetch(`${SERVER_URL}/clear`, {
-  //       method: "POST",
-  //       headers: {
-  //         "Content-Type": "application/json",
-  //       },
-  //       body: JSON.stringify(payload),
-  //     });
-  //     const text = await response.text();
-  //     // console.log(text);
-  //   } catch (error) {
-  //     console.error("Error clearing server data:", error);
-  //   }
-  // }
 
   onTouchEnd() {
     this.setState({
@@ -238,36 +234,98 @@ export default class App extends Component<{}, AppState> {
     }
     this.clearServerData(); // サーバーのデータもクリア
   }
+  startShake() {
+    const blueScore = parseFloat(this.state.blue_similarity) || 0;
+    const redScore = parseFloat(this.state.red_similarity) || 0;
+    const shakeIntensity =
+      this.state.blueButtonColor === "blue"
+        ? Math.max(0, (redScore - blueScore) / 2)
+        : Math.max(0, (blueScore - redScore) / 2); // 修正
 
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(this.shakeAnimation, {
+          toValue: shakeIntensity,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(this.shakeAnimation, {
+          toValue: -shakeIntensity,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }
   render() {
+    const shake = this.shakeAnimation.interpolate({
+      inputRange: [-10, 10],
+      outputRange: [-10, 10],
+    });
     return (
-      <View style={{ flex: 1, paddingTop: 20 }}>
+      <View style={{ flex: 1 }}>
         <View style={{ flexDirection: "row", alignItems: "center" }}>
           <View style={{ width: ITEM_WIDTH / 2, height: ITEM_WIDTH / 2 }}>
-            <Image
-              source={require("./assets/senga.png")}
+            <Animated.Image
+              source={require("./assets/sinkansenn.png")}
               style={{
-                width: 500,
+                width: 400,
                 height: 500,
-                marginLeft: ITEM_WIDTH / 15,
-                marginTop: 25,
+                marginLeft: ITEM_WIDTH / 10,
+                transform: [{ translateX: shake }],
               }}
             />
-          </View>
-          <View style={{ flex: 1, height: "100%", marginLeft: 70 }}>
-            <Text
-              style={{
-                fontSize: 20,
-                textAlign: "center",
-                marginBottom: 10,
-                marginTop: 50,
-              }}
-            >
-              スケッチを描いてね
-            </Text>
-
             <View
               style={{
+                marginLeft: ITEM_WIDTH / 15,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-around",
+              }}
+            >
+              <View>
+                <Text
+                  style={{ fontSize: 20, textAlign: "center", marginTop: 40 }}
+                >
+                  あなたのスコア
+                </Text>
+                <Text
+                  style={{ fontSize: 40, textAlign: "center", marginTop: 5 }}
+                >
+                  {this.state.blueButtonColor === "blue" &&
+                  this.state.blue_similarity
+                    ? this.state.blue_similarity
+                    : this.state.blueButtonColor === "red" &&
+                      this.state.red_similarity
+                    ? this.state.red_similarity
+                    : "0.0pt"}
+                </Text>
+              </View>
+              <View>
+                <Text
+                  style={{ fontSize: 20, textAlign: "center", marginTop: 40 }}
+                >
+                  相手のスコア
+                </Text>
+                <Text
+                  style={{ fontSize: 40, textAlign: "center", marginTop: 5 }}
+                >
+                  {this.state.blueButtonColor === "blue" &&
+                  this.state.red_similarity
+                    ? this.state.red_similarity
+                    : this.state.blueButtonColor === "red" &&
+                      this.state.blue_similarity
+                    ? this.state.blue_similarity
+                    : "0.0pt"}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={{ flex: 1, height: "100%", marginLeft: 70 }}>
+            <View
+              style={{
+                marginTop: 100,
                 width: 500,
                 height: 500,
                 borderWidth: 2,
@@ -287,43 +345,89 @@ export default class App extends Component<{}, AppState> {
                 }}
               />
             </View>
-            <View style={styles.clear}>
-              <Text>
-                類似度：{this.state.similarity ? this.state.similarity : "0%"}
-              </Text>
-            </View>
-            <TouchableOpacity style={styles.clear} onPress={this.saveSketch}>
-              <Text>送信</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.clear} onPress={this.clear}>
-              <Text>クリア</Text>
-            </TouchableOpacity>
             <View
               style={{
                 flexDirection: "row",
-                marginTop: 10,
-                width: 500,
-                justifyContent: "space-between",
+                justifyContent: "space-around",
+                marginTop: 20,
+                marginRight: 20,
               }}
             >
               <TouchableOpacity
-                style={[
-                  styles.button,
-                  { backgroundColor: this.state.blueButtonColor },
-                ]}
-                onPress={this.toggleBlueButtonColor}
+                style={{
+                  width: 100,
+                  height: 100,
+                  backgroundColor: "red",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: 50,
+                  borderColor: "orange",
+                  borderWidth: 5,
+                }}
+                onPress={this.saveSketch}
               >
-                <Text style={styles.buttonText}>青ボタン</Text>
+                <Text
+                  style={{
+                    color: "white",
+                    fontSize: 10,
+                    fontWeight: "bold",
+                    marginBottom: -3,
+                  }}
+                >
+                  こうげき
+                </Text>
+                <Text
+                  style={{
+                    color: "white",
+                    fontSize: 24,
+                    fontWeight: "bold",
+                    marginBottom: 3,
+                  }}
+                >
+                  攻撃
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[
-                  styles.button,
-                  { backgroundColor: this.state.redButtonColor },
-                ]}
-                onPress={this.toggleRedButtonColor}
+                style={{
+                  width: 100,
+                  height: 100,
+                  backgroundColor: "blue",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: 50,
+                  borderColor: "lightblue",
+                  borderWidth: 5,
+                }}
+                onPress={this.clear}
               >
-                <Text style={styles.buttonText}>赤ボタン</Text>
+                <Text
+                  style={{ color: "white", fontSize: 24, fontWeight: "bold" }}
+                >
+                  クリア
+                </Text>
               </TouchableOpacity>
+            </View>
+            <View
+              style={{
+                flexDirection: "row",
+                marginTop: 30,
+                justifyContent: "flex-end",
+                marginRight: 40,
+              }}
+            >
+              <Text>※端末識別用: </Text>
+              <TouchableOpacity
+                style={[
+                  {
+                    width: 20,
+                    height: 20,
+                    borderRadius: 10,
+                    backgroundColor: this.state.blueButtonColor,
+                  },
+                ]}
+                onPress={this.toggleBlueButtonColor}
+              ></TouchableOpacity>
             </View>
           </View>
         </View>
