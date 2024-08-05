@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 from skimage.feature import hog
 import logging
+import pyperclip
 
 app = Flask(__name__)
 
@@ -143,6 +144,8 @@ def save_sketch():
             print(f"ブルーチームの類似度: {blue_similarity_percentage:.2f}%")
             print(f"レッドチームの類似度: {red_similarity_percentage:.2f}%")
             print(f"ブルーチームとレッドチームの類似度の差分: {similarity_difference_percentage:.2f}%")
+            pyperclip.copy(similarity_difference_percentage)
+
         return jsonify({
             "message": "Sketch saved successfully",
             "similarity": similarity,
