@@ -5,6 +5,7 @@ import numpy as np
 from skimage.feature import hog
 import logging
 import pyperclip
+from PIL import ImageOps
 
 app = Flask(__name__)
 
@@ -15,8 +16,8 @@ log.setLevel(logging.ERROR)
 
 SAMPLE_IMAGE_PATH_1 = 'sinkansenn.png'
 SAMPLE_IMAGE_PATH_2 = 'sinkansenn2.png'
-SAMPLE_IMAGE_PATH_2 = 'sinkansenn3.png'
-SAMPLE_IMAGE_PATH = SAMPLE_IMAGE_PATH_2
+SAMPLE_IMAGE_PATH_3 = 'sinkansenn3.png'
+SAMPLE_IMAGE_PATH = SAMPLE_IMAGE_PATH_3
 
 @app.route('/draw', methods=['POST'])
 def receive_drawing_data():
@@ -62,6 +63,11 @@ def save_sketch():
 
         image_blue_path = 'sketch_blue.png'
         image_red_path = 'sketch_red.png'
+        image_blue.save(image_blue_path)
+        image_red.save(image_red_path)
+
+        image_blue = ImageOps.flip(image_blue)
+        image_red = ImageOps.flip(image_red)
         image_blue.save(image_blue_path)
         image_red.save(image_red_path)
 

@@ -17,7 +17,7 @@ const SERVER_URL = `http://${SERVER_IP}:8080`;
 const SAMPLE_IMAGE_PATH_1 = "./assets/sinkansenn.png";
 const SAMPLE_IMAGE_PATH_2 = "./assets/sinkansenn2.png";
 const SAMPLE_IMAGE_PATH_3 = "./assets/sinkansenn3.png";
-const SAMPLE_IMAGE_PATH = SAMPLE_IMAGE_PATH_1;
+const SAMPLE_IMAGE_PATH = SAMPLE_IMAGE_PATH_3;
 
 interface AppState {
   previousX: number | string;
