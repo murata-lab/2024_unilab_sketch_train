@@ -13,14 +13,15 @@ red_drawing_data_list = []
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 
+SAMPLE_IMAGE_PATH_1 = 'sinkansenn.png'
+SAMPLE_IMAGE_PATH_2 = 'sinkansenn2.png'
+SAMPLE_IMAGE_PATH = SAMPLE_IMAGE_PATH_2
 
 @app.route('/draw', methods=['POST'])
 def receive_drawing_data():
     try:
         data = request.get_json()
         blue_button_color = data.get('blueButtonColor', None)
-        print(blue_button_color)
-
         if data and 'currentX' in data and 'currentY' in data:
             if data['currentX'] != 0 or data['currentY'] != 0:
                 # 座標データを反転させて保存
@@ -71,9 +72,9 @@ def save_sketch():
         if generated_img_red is None:
             raise ValueError(f"Failed to load image at path: {image_red_path}")
 
-        sample_img = cv2.imread('sinkansenn.png')
+        sample_img = cv2.imread(SAMPLE_IMAGE_PATH)
         if sample_img is None:
-            raise ValueError("Failed to load sample image at path: image5.png")
+            raise ValueError("Failed to load sample image")
 
         hog_generated_blue = extract_hog(generated_img_blue)
         hog_generated_red = extract_hog(generated_img_red)
@@ -108,15 +109,16 @@ def clear_data():
         if button_color == 'blue':
             blue_drawing_data_list = []
             print("Blue drawing data cleared")
+            return jsonify({"message": "Blue drawing data cleared", "blue_drawing_data_list": blue_drawing_data_list}), 200
         elif button_color == 'red':
             red_drawing_data_list = []
             print("Red drawing data cleared")
+            return jsonify({"message": "Red drawing data cleared", "red_drawing_data_list": red_drawing_data_list}), 200
         else:
             blue_drawing_data_list = []
             red_drawing_data_list = []
             print("All drawing data cleared")
-
-        return jsonify({"message": "Drawing data cleared"}), 200
+            return jsonify({"message": "All drawing data cleared", "blue_drawing_data_list": blue_drawing_data_list, "red_drawing_data_list": red_drawing_data_list}), 200
     except Exception as e:
         print(f"Error: {e}")
         return jsonify({"error": str(e)}), 500
